@@ -3,28 +3,7 @@
     <div id="map" class="map"></div>
 
     <div class="sidebar">
-      <Menu theme="light" class="menu" active-name="1">
-        <MenuGroup title="内容管理">
-          <MenuItem name="1">
-            <Icon type="md-document" />
-            文章管理
-          </MenuItem>
-          <MenuItem name="2">
-            <Icon type="md-chatbubbles" />
-            评论管理
-          </MenuItem>
-        </MenuGroup>
-        <MenuGroup title="统计分析">
-          <MenuItem name="3">
-            <Icon type="md-heart" />
-            用户留存
-          </MenuItem>
-          <MenuItem name="4">
-            <Icon type="md-leaf" />
-            流失用户
-          </MenuItem>
-        </MenuGroup>
-      </Menu>
+      <Tree :data="data" show-checkbox></Tree>
     </div>
   </div>
 </template>
@@ -37,7 +16,39 @@ export default {
   name: 'home',
   data () {
     return {
-      scene: null
+      scene: null,
+      data: [
+        {
+          title: 'parent 1',
+          expand: true,
+          children: [
+            {
+              title: 'parent 1-1',
+              expand: true,
+              children: [
+                {
+                  title: 'leaf 1-1-1'
+                },
+                {
+                  title: 'leaf 1-1-2'
+                }
+              ]
+            },
+            {
+              title: 'parent 1-2',
+              expand: true,
+              children: [
+                {
+                  title: 'leaf 1-2-1'
+                },
+                {
+                  title: 'leaf 1-2-1'
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   },
   created () {
@@ -48,7 +59,7 @@ export default {
       this.scene = new Scene({
         id: 'map',
         map: new GaodeMap({
-          pitch: 35.210526315789465,
+          pitch: 0,
           style: 'light',
           center: [ 104.288144, 31.239692 ],
           zoom: 4.4,
@@ -78,8 +89,8 @@ export default {
     top: 0;
     height: 100%;
     width: 400px;
-    background: red;
     opacity: .5;
+    background: white;
     .menu {
       width: 100% !important;
       height: 100%;

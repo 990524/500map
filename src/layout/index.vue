@@ -1,35 +1,24 @@
 <template>
   <div class="layout">
-    <Menu mode="horizontal" :theme="theme" active-name="1" class="header">
-      <MenuItem name="1">
-        <Icon type="ios-paper" />
-        内容管理
-      </MenuItem>
-      <MenuItem name="2">
-        <Icon type="ios-people" />
-        用户管理
-      </MenuItem>
-      <Submenu name="3">
-        <template slot="title">
-          <Icon type="ios-stats" />
-          统计分析
-        </template>
-        <MenuGroup title="使用">
-          <MenuItem name="3-1">新增和启动</MenuItem>
-          <MenuItem name="3-2">活跃分析</MenuItem>
-          <MenuItem name="3-3">时段分析</MenuItem>
-        </MenuGroup>
-        <MenuGroup title="留存">
-          <MenuItem name="3-4">用户留存</MenuItem>
-          <MenuItem name="3-5">流失用户</MenuItem>
-        </MenuGroup>
-      </Submenu>
-      <MenuItem name="4">
-        <Icon type="ios-construct" />
-        综合设置
-      </MenuItem>
-    </Menu>
-    <main class="main">
+    <nav class="nav">
+      <div class="logo">
+        <span class="title">Map</span>
+      </div>
+
+      <div class="menu">
+        <Menu mode="horizontal" :active-name="activeMenu">
+          <MenuItem v-for="menu in menus" :key="menu.name" :name="menu.name" :to="menu.url">
+            <Icon v-if="menu.iconType" :type="menu.iconType" />{{ menu.label }}
+          </MenuItem>
+        </Menu>
+      </div>
+
+      <div class="user">
+        <Avatar class="avatar" icon="ios-person" size="large" />
+      </div>
+    </nav>
+
+    <main class="view">
       <router-view></router-view>
     </main>
   </div>
@@ -40,7 +29,42 @@ export default {
   name: 'Layout',
   data () {
     return {
-      theme: 'dark' // light dark primary(mode="horizontal")
+      theme: 'dark',
+      menus: [
+        {
+          label: '地图管理',
+          name: 'content',
+          url: '/map',
+          iconType: 'ios-paper'
+        },
+        {
+          label: '用户管理',
+          name: 'user',
+          url: '/other/user',
+          iconType: 'ios-people'
+        },
+        {
+          label: '统计分析',
+          name: 'statistics',
+          url: '/other/statistics',
+          iconType: 'ios-stats'
+        },
+        {
+          label: '综合设置',
+          name: 'multiple',
+          url: '/other/multiple',
+          iconType: 'ios-construct'
+        }
+      ]
+    }
+  },
+  computed: {
+    activeMenu () {
+      for (const { url, name } of this.menus) {
+        if (url === this.$route.fullPath) return name
+      }
+
+      return ''
     }
   }
 }
@@ -48,12 +72,40 @@ export default {
 
 <style lang="scss" scoped>
 .layout {
-  .header {
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 30px;
     height: 60px;
+    overflow: hidden;
+    background: white;
+    border-bottom: 1px solid #e0e0e0;
+    .logo {
+      width: 25%;
+      .title {
+        font-size: 2rem;
+        font-weight: bold;
+        cursor: pointer
+      }
+    }
+    .menu {
+      display: flex;
+      justify-content: center;
+      width: 50%;
+    }
+    .user {
+      display: flex !important;
+      justify-content: flex-end !important;
+      width: 25%;
+      .avatar {
+        cursor: pointer;
+      }
+    }
   }
 
-  .main {
-    height: calc(100vh - 60px);
+  .view {
+    height: calc(100vh - 60px); // 内容高度(60px: 导航栏)
   }
 }
 </style>
