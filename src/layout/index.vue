@@ -47,15 +47,13 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-$header_height: 60px;
-
 .layout {
   .header {
-    height: $header_height;
+    height: 60px;
   }
 
   .main {
-    min-height: calc(100vh - $header_height);
+    height: calc(100vh - 60px);
   }
 }
 </style>
