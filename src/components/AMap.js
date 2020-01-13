@@ -1,8 +1,7 @@
-const key = '28fcf20c127cd159a1737c647244254b'
-const callback = 'initAMap'
-
 export default function MapLoader () {
   return new Promise((resolve, reject) => {
+    const key = '28fcf20c127cd159a1737c647244254b'
+    const callback = 'initAMap'
     const script = document.createElement('script')
 
     const params = {
