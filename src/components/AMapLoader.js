@@ -1,7 +1,7 @@
 export default function MapLoader () {
   console.log('mapLoader...')
   return new Promise((resolve, reject) => {
-    const key = '28fcf20c127cd159a1737c647244254b'
+    const key = process.env.VUE_APP_AMAP_TOKEN
     const callback = 'initAMap'
     const script = document.createElement('script')
 
