@@ -3,7 +3,27 @@
     <div id="map" class="map"></div>
 
     <div class="sidebar">
-      <Tree :data="data" :render="renderContent"></Tree>
+      <Tabs class="tabs">
+        <TabPane label="底图切换">
+          <make-selectable class="selectable-item" v-for="selectable in selectableLayers.base" :key="selectable.id">
+            <Card dis-hover :bordered="false" :padding="0" class="card">
+              <img ondragstart="return false" :src="selectable.img">
+              <div class="divider"></div>
+              <h3>{{ selectable.label }}</h3>
+            </Card>
+          </make-selectable>
+        </TabPane>
+        <TabPane label="图层控制">
+          <Menu style="width: 100%;">
+            <div v-for="(layer, index) in selectableLayers.base" :key="index">
+              <MenuGroup :title="layer.label" v-if="layer.children">
+                <MenuItem :name="child.id" v-for="child in layer.children" :key="child.id">{{ child.label }}</MenuItem>
+              </MenuGroup>
+              <MenuItem :name="layer.id" v-else>{{ layer.label }}</MenuItem>
+            </div>
+          </Menu>
+        </TabPane>
+      </Tabs>
     </div>
 
     <div class="toolbar">
@@ -13,219 +33,73 @@
 </template>
 
 <script>
-import { Scene } from '@antv/l7'
-import { GaodeMap } from '@antv/l7-maps'
+import AMapLoader from '../components/AMapLoader'
+import MakeSelectable from '../components/MakeSelectable'
 
 export default {
   name: 'Map',
+  components: { MakeSelectable },
   data () {
     return {
-      scene: null,
-      data_: [
-        {
-          title: 'parent 1',
-          expand: true,
-          children: [
-            {
-              title: 'parent 1-1',
-              expand: true,
-              children: [
-                {
-                  title: 'leaf 1-1-1'
-                },
-                {
-                  title: 'leaf 1-1-2'
-                }
-              ]
-            },
-            {
-              title: 'parent 1-2',
-              expand: true,
-              children: [
-                {
-                  title: 'leaf 1-2-1'
-                },
-                {
-                  title: 'leaf 1-2-1'
-                }
-              ]
-            }
-          ]
-        }
-      ],
-      data: [
-        {
-          title: 'parent 1',
-          expand: true,
-          render: (h, { root, node, data }) => {
-            return h('span', {
-              style: {
-                display: 'inline-block',
-                width: '100%'
-              }
-            }, [
-              h('span', [
-                h('Icon', {
-                  props: {
-                    type: 'ios-folder-outline'
-                  },
-                  style: {
-                    marginRight: '8px'
-                  }
-                }),
-                h('span', data.title)
-              ]),
-              h('span', {
-                style: {
-                  display: 'inline-block',
-                  float: 'right',
-                  marginRight: '32px'
-                }
-              }, [
-                h('Button', {
-                  props: Object.assign({}, this.buttonProps, {
-                    icon: 'ios-add',
-                    type: 'primary'
-                  }),
-                  style: {
-                    width: '64px'
-                  },
-                  on: {
-                    click: () => { this.append(data) }
-                  }
-                })
-              ])
-            ])
+      // 高德底图初始化对象
+      AMapInstance: null,
+
+      // 地图实例
+      map: null,
+
+      // 可选图层列表
+      selectableLayers: {
+        // 底图
+        base: [
+          {
+            id: 1,
+            label: '标准图层',
+            img: '/static/standardLayer.png',
+            visible: false,
+            layerInstance: null
           },
-          children: [
-            {
-              title: 'child 1-1',
-              expand: true,
-              children: [
-                {
-                  title: 'leaf 1-1-1',
-                  expand: true
-                },
-                {
-                  title: 'leaf 1-1-2',
-                  expand: true
-                }
-              ]
-            },
-            {
-              title: 'child 1-2',
-              expand: true,
-              children: [
-                {
-                  title: 'leaf 1-2-1',
-                  expand: true
-                },
-                {
-                  title: 'leaf 1-2-1',
-                  expand: true
-                }
-              ]
-            }
-          ]
-        }
-      ],
-      buttonProps: {
-        type: 'default',
-        size: 'small'
+          {
+            id: 2,
+            label: '卫星图层',
+            img: '/static/satelliteLayer.png',
+            visible: false,
+            layerInstance: null
+          },
+          {
+            id: 3,
+            label: '路网图层',
+            img: '/static/satelliteRouteLayer.png',
+            visible: false,
+            layerInstance: null
+          },
+          {
+            id: 4,
+            label: '楼块图层',
+            img: '/static/floorFastLayer.png',
+            visible: false,
+            layerInstance: null
+          }
+        ],
+        // 扩展图层
+        extends: []
       }
     }
   },
-  // TODO 能不能从L7拿到AMap未初始化的实例
+  async beforeRouteEnter (from, to, next) {
+    const instance = await AMapLoader()
+    next(vm => (vm.AMapInstance = instance))
+  },
   created () {
     this.$nextTick(() => {
-      this.createScene()
+      this.renderMap()
     })
   },
   methods: {
-    createScene () {
-      this.scene = new Scene({
-        id: 'map',
-        map: new GaodeMap({
-          pitch: 0,
-          style: 'light',
-          center: [ 104.288144, 31.239692 ],
-          zoom: 4.4,
-          token: process.env.VUE_APP_AMAP_TOKEN
-        })
-      })
+    renderMap () {
+      this.map = new this.AMapInstance.Map('map')
     },
     renderRandomGeoJsonLayer () {
       // 随机渲染GeoJson图层
-    },
-    /**
-     * 自定义节点内容
-     *
-     * @param h
-     * @param root 树的根节点
-     * @param node 当前节点
-     * @param data 当前节点数据
-     * @returns {*}
-     */
-    renderContent (h, { root, node, data }) {
-      return h('span', {
-        style: {
-          display: 'inline-block',
-          width: '100%'
-        }
-      }, [
-        h('span', [
-          h('Icon', {
-            props: {
-              type: 'ios-paper-outline'
-            },
-            style: {
-              marginRight: '8px'
-            }
-          }),
-          h('span', data.title)
-        ]),
-        h('span', {
-          style: {
-            display: 'inline-block',
-            float: 'right',
-            marginRight: '32px'
-          }
-        }, [
-          h('Button', {
-            props: Object.assign({}, this.buttonProps, {
-              icon: 'ios-add'
-            }),
-            style: {
-              marginRight: '8px'
-            },
-            on: {
-              click: () => { this.append(data) }
-            }
-          }),
-          h('Button', {
-            props: Object.assign({}, this.buttonProps, {
-              icon: 'ios-remove'
-            }),
-            on: {
-              click: () => { this.remove(root, node, data) }
-            }
-          })
-        ])
-      ])
-    },
-    append (data) {
-      const children = data.children || []
-      children.push({
-        title: 'appended node',
-        expand: true
-      })
-      this.$set(data, 'children', children)
-    },
-    remove (root, node, data) {
-      const parentKey = root.find(el => el === node).parent
-      const parent = root.find(el => el.nodeKey === parentKey).node
-      const index = parent.children.indexOf(data)
-      parent.children.splice(index, 1)
     }
   }
 }
@@ -238,8 +112,10 @@ export default {
   position: relative;
 
   .map {
-    .l7-ctrl-logo {
-      display: none;  // 隐藏 AntV L7 logo
+    height: 100%;
+
+    .amap-logo, .amap-copyright {
+      display: none !important;
     }
   }
 
@@ -248,11 +124,75 @@ export default {
     left: 0;
     top: 0;
     height: 100%;
-    width: 400px;
+    width: 380px;
     background: white;
-    .menu {
-      width: 100% !important;
+    display: flex;
+    align-items: center;
+    box-shadow: 5px 0 5px -5px #888888;
+
+    .tabs {
       height: 100%;
+      width: 100%;
+      padding: 5px;
+      overflow: auto;
+
+      &::-webkit-scrollbar {
+        width: 3px;     /*高宽分别对应横竖滚动条的尺寸*/
+        height: 1px;
+      }
+      &::-webkit-scrollbar-thumb {
+        border-radius: 10px;
+        -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+        background: #c2d7f0;
+      }
+      &::-webkit-scrollbar-track {
+        border-radius: 10px;
+      }
+
+      .selectable-item {
+        text-align: center;
+        box-shadow: 0 0 2px 1px #cccccc;
+
+        &:not(:last-of-type) {
+          margin-bottom: 10px;
+        }
+
+        .card {
+          .divider {
+            margin: 6px auto;
+            height: 1px;
+            width: 80%;
+            border-bottom: 1px solid #f1f1f1;
+          }
+
+          img {
+            height: 200px;
+            width: 100%
+          }
+
+          img:after {
+            position: absolute;
+            width: 100%;
+            height: 201px;
+            content: "";
+            display: block;
+            top: 0;
+            left: 0;
+            background: #ededed;
+            background-size: 100%;
+          }
+        }
+      }
+
+      .ivu-tabs-nav {
+        width: 100% !important;
+      }
+
+      .ivu-tabs-tab {
+        text-align: center;
+        margin-right: 0;
+        width: 50%;
+      }
     }
   }
 

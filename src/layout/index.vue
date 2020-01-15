@@ -6,7 +6,7 @@
       </div>
 
       <div class="menu">
-        <Menu mode="horizontal" :active-name="activeMenu">
+        <Menu mode="horizontal" theme="dark" :active-name="activeMenu">
           <MenuItem v-for="menu in menus" :key="menu.name" :name="menu.name" :to="menu.url">
             <Icon v-if="menu.iconType" :type="menu.iconType" />{{ menu.label }}
           </MenuItem>
@@ -71,6 +71,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+$nav_background: #515a6e;
+
 .layout {
   .nav {
     display: flex;
@@ -79,11 +81,12 @@ export default {
     padding: 0 30px;
     height: 60px;
     overflow: hidden;
-    background: white;
+    background: $nav_background;
     border-bottom: 1px solid #e0e0e0;
     .logo {
       width: 25%;
       .title {
+        color: #efefef;
         font-size: 2rem;
         font-weight: bold;
         cursor: pointer
@@ -93,6 +96,9 @@ export default {
       display: flex;
       justify-content: center;
       width: 50%;
+      .ivu-menu {
+        background: none;
+      }
     }
     .user {
       display: flex !important;
