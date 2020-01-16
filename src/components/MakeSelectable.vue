@@ -10,7 +10,7 @@
     <slot></slot>
     <div class="mark" v-show="touching || selected">
       <div class="bg" :style="{ borderTopColor: borderColor }"></div>
-      <div class="icon"><Icon type="md-checkmark" /></div>
+      <div class="icon"><Icon type="md-done-all" /></div>
     </div>
   </div>
 </template>
@@ -24,7 +24,7 @@ export default {
      */
     borderColor: {
       type: String,
-      default: '#4565ef'
+      default: '#4879ff'
     },
     selected: Boolean
   },

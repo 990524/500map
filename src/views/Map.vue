@@ -1,7 +1,5 @@
 <template>
-  <div class="main">
-    <div id="map" class="map"></div>
-
+  <div ref="main" class="main">
     <div class="sidebar">
       <Tabs class="tabs">
         <TabPane label="底图切换">
@@ -34,8 +32,21 @@
       </Tabs>
     </div>
 
+    <div id="map" class="map"></div>
+
     <div class="toolbar">
-      toolbar
+      <div class="item" @click="handleZoomIn">
+        <Icon type="md-add" />
+      </div>
+      <div class="item" @click="handleZoomOut">
+        <Icon class="item" type="md-remove" />
+      </div>
+      <div class="item">
+        <Icon class="item" type="md-search" />
+      </div>
+      <div class="item" @click="handleToggleMapFullScreen">
+        <Icon class="item" type="md-qr-scanner" />
+      </div>
     </div>
   </div>
 </template>
@@ -94,8 +105,6 @@ export default {
       }
     }
   },
-  watch: {
-  },
   async beforeRouteEnter (from, to, next) {
     // 加载高德地图API
     const instance = await AMapLoader()
@@ -103,9 +112,31 @@ export default {
   },
   created () {
     this.$nextTick(() => {
-      this.renderMap()
+      this.initMap()
+      this.registerLayerToggleListener()
+      this.addMapControls()
+    })
+  },
+  methods: {
+    initMap () {
+      this.map = new this.AMap.Map('map', {
+        viewMode: '3D',
+        pitch: 0,
+        layers: []
+      })
 
-      // 动态注册监听器（需要在调用 $nextTick 后注册,防止AMap加载失败）
+      // 移除默认图层(消耗资源)
+      this.map.remove(this.map.getLayers())
+
+      this.selectableLayers.base.layerGroup = new this.AMap.LayerGroup([])
+      this.selectableLayers.extends.layerGroup = new this.AMap.LayerGroup([])
+
+      // 图层组必须使用 setMap 方法注入地图
+      this.selectableLayers.base.layerGroup.setMap(this.map)
+      this.selectableLayers.extends.layerGroup.setMap(this.map)
+    },
+    registerLayerToggleListener () {
+      // 注册底图切换监听器
       this.$watch('selectableLayers.base.selected', (selected) => {
         // 所选图层实例数组
         const layers = selected.reduce((res, name) => {
@@ -126,26 +157,38 @@ export default {
         immediate: true,
         deep: true
       })
-    })
-  },
-  methods: {
-    renderMap () {
-      // 初始化地图
-      this.map = new this.AMap.Map('map', {
-        viewMode: '3D',
-        pitch: 0,
-        layers: []
-      })
+    },
+    addMapControls () {
+      // 比例尺插件
+      this.map.addControl(new this.AMap.Scale())
+      this.map.addControl(new this.AMap.ControlBar({ showZoomBar: false }))
+    },
+    handleZoomIn () {
+      this.map.zoomIn()
+    },
+    handleZoomOut () {
+      this.map.zoomOut()
+    },
+    handleToggleMapFullScreen () {
+      const isFullScreen = document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement
 
-      // 移除默认图层(消耗资源)
-      this.map.remove(this.map.getLayers())
+      if (!isFullScreen) {
+        const targetElement = this.$refs.main
 
-      this.selectableLayers.base.layerGroup = new this.AMap.LayerGroup([])
-      this.selectableLayers.extends.layerGroup = new this.AMap.LayerGroup([])
+        const request = targetElement.requestFullscreen || targetElement.msRequestFullscreen || targetElement.mozRequestFullScreen || targetElement.webkitRequestFullscreen
 
-      // 图层组必须使用 setMap 方法注入地图
-      this.selectableLayers.base.layerGroup.setMap(this.map)
-      this.selectableLayers.extends.layerGroup.setMap(this.map)
+        request.call(targetElement)
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen()
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen()
+        } else if (document.mozCancelFullScreen) {
+          document.mozCancelFullScreen()
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen()
+        }
+      }
     }
   }
 }
@@ -156,19 +199,11 @@ export default {
   height: 100%;
   width: 100%;
   position: relative;
-
-  .map {
-    height: 100%;
-
-    &::v-deep .amap-logo,&::v-deep .amap-copyright {
-      display: none !important;
-    }
-  }
+  display: flex;
 
   .sidebar {
-    position: absolute;
-    left: 0;
-    top: 0;
+    z-index: 10;
+    flex-shrink: 0;
     height: 100%;
     width: 380px;
     background: white;
@@ -250,19 +285,50 @@ export default {
     }
   }
 
+  .map {
+    z-index: 5;
+    flex-shrink: 0;
+    width: calc(100vw - 380px);
+    height: 100%;
+
+    &::v-deep .amap-logo,&::v-deep .amap-copyright {
+      display: none !important;
+    }
+  }
+
   .toolbar {
+    z-index: 15;
     position: absolute;
-    right: 20px;
-    top: 20px;
-    width: 300px;
+    right: 125px;
+    top: calc(65px - 40px / 2);
     height: 40px;
-    background: white;
-    border-radius: 5px;
+    background: #fafafa;
+    border-radius: 15px;
     padding: 3px;
-    border: 1px solid #b9beff;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 0 5px 0 #888888;
+    padding: 0 10px;
+    .item {
+      font-size: 2rem;
+      padding: 0 6px;
+      cursor: pointer;
+      position: relative;
+      &:hover .ivu-icon{
+        color: #4879ff;
+      }
+
+      &:not(:last-of-type):after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 10px;
+        width: 1px;
+        height: 60%;
+        border-right: 1px solid #cccccc;
+      }
+    }
   }
 }
 </style>

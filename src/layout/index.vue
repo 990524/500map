@@ -82,7 +82,6 @@ $nav_background: #515a6e;
     height: 60px;
     overflow: hidden;
     background: $nav_background;
-    border-bottom: 1px solid #e0e0e0;
     .logo {
       width: 25%;
       .title {
