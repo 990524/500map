@@ -21,7 +21,7 @@
         </TabPane>
         <TabPane label="图层控制">
           <Menu style="width: 100%;">
-            <div v-for="(layer, index) in selectableLayers.base.options" :key="index">
+            <div v-for="(layer, index) in selectableLayers.extends.options" :key="index">
               <MenuGroup :title="layer.label" v-if="layer.children">
                 <MenuItem :name="child.name" v-for="child in layer.children" :key="child.id">{{ child.label }}</MenuItem>
               </MenuGroup>
@@ -42,7 +42,13 @@
         <Icon class="item" type="md-remove" />
       </div>
       <div class="item">
-        <Icon class="item" type="md-search" />
+        <Poptip title="兴趣点搜索" placement="bottom">
+          <Icon class="item" type="md-search" />
+          <div slot="content" class="address-search">
+            <i-input v-model="addressSearch.location" placeholder="请输入地址" class="input"></i-input>
+            <Button @click="handleSearchAddress" type="primary">确认</Button>
+          </div>
+        </Poptip>
       </div>
       <div class="item" @click="handleToggleMapFullScreen">
         <Icon class="item" type="md-qr-scanner" />
@@ -99,9 +105,38 @@ export default {
         // 扩展图层
         extends: {
           selected: [],
-          options: [],
+          options: [
+            {
+              label: '叠加图层A',
+              name: 'a',
+              layerInstance: null,
+              generateLayer: () => {
+                return new this.AMap.TileLayer()
+              }
+            },
+            {
+              label: '叠加图层B',
+              name: 'b',
+              layerInstance: null,
+              generateLayer: () => {
+                return new this.AMap.TileLayer.Satellite()
+              }
+            },
+            {
+              label: '叠加图层C',
+              name: 'c',
+              layerInstance: null,
+              generateLayer: () => {
+                return new this.AMap.TileLayer.Satellite()
+              }
+            }
+          ],
           layerGroup: null
         }
+      },
+
+      addressSearch: {
+        location: ''
       }
     }
   },
@@ -189,6 +224,29 @@ export default {
           document.webkitExitFullscreen()
         }
       }
+    },
+    handleSearchAddress () {
+      const geocoder = new this.AMap.Geocoder()
+
+      geocoder.getLocation(this.addressSearch.location, (status, result) => {
+        console.log('result')
+        console.log(result)
+
+        if (status === 'complete' && result.info === 'OK') {
+          console.log(233333)
+          console.log(this.map.getZoom())
+          // const zoomLevelMap = {
+          //   '国家':
+          // }
+
+          // result中对应详细地理坐标信息
+          const { lng, lat } = result.geocodes[0].location
+
+          this.map.panTo(new this.AMap.LngLat(lng, lat))
+        } else {
+          this.$Message.warning('暂无该地址信息～')
+        }
+      })
     }
   }
 }
@@ -327,6 +385,15 @@ export default {
         width: 1px;
         height: 60%;
         border-right: 1px solid #cccccc;
+      }
+
+      .address-search {
+        width: 300px;
+        display: flex;
+        justify-content: space-between;
+        .input {
+          margin-right: 5px;
+        }
       }
     }
   }

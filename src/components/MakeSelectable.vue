@@ -8,7 +8,7 @@
     @click="handleClick"
   >
     <slot></slot>
-    <div class="mark" v-show="touching || selected">
+    <div class="mark" v-show="selected">
       <div class="bg" :style="{ borderTopColor: borderColor }"></div>
       <div class="icon"><Icon type="md-done-all" /></div>
     </div>
