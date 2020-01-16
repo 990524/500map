@@ -81,25 +81,6 @@ export default {
               generateLayer: () => {
                 return new this.AMap.TileLayer.Satellite()
               }
-            },
-            {
-              label: '路网图层',
-              name: 'satelliteRoute',
-              img: '/static/satelliteRouteLayer.png',
-              visible: false,
-              layerInstance: null,
-              generateLayer: () => {
-                return new this.AMap.TileLayer.RoadNet()
-              }
-            },
-            {
-              label: '实时交通图层',
-              name: 'floorFast',
-              img: '/static/floorFastLayer.png',
-              layerInstance: null,
-              generateLayer: () => {
-                return new this.AMap.TileLayer.Traffic()
-              }
             }
           ],
           layerGroup: null
