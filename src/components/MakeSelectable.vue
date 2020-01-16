@@ -2,12 +2,13 @@
   <div
     ref="card_radio"
     class="card"
+    :style="{borderColor: touching || selected ? borderColor : 'white'}"
     @mouseover="handleMouseover"
     @mouseleave="handleMouseleave"
     @click="handleClick"
   >
     <slot></slot>
-    <div class="mark" v-show="touching">
+    <div class="mark" v-show="touching || selected">
       <div class="bg" :style="{ borderTopColor: borderColor }"></div>
       <div class="icon"><Icon type="md-checkmark" /></div>
     </div>
@@ -24,16 +25,12 @@ export default {
     borderColor: {
       type: String,
       default: '#4565ef'
-    }
+    },
+    selected: Boolean
   },
   data () {
     return {
       touching: false
-    }
-  },
-  watch: {
-    touching (touching) {
-      this.$refs.card_radio.style['border-color'] = touching ? this.borderColor : 'white'
     }
   },
   methods: {

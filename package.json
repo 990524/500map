@@ -11,6 +11,7 @@
     "@antv/l7": "^2.0.1",
     "@antv/l7-maps": "^2.0.1",
     "core-js": "^3.4.4",
+    "lodash": "^4.17.15",
     "normalize.css": "^8.0.1",
     "nprogress": "^0.2.0",
     "view-design": "^4.0.2",
