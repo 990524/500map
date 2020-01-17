@@ -5,7 +5,7 @@
         <TabPane label="底图切换">
           <div class="content">
             <make-selectable
-              v-for="{ name, label, img } in selectableLayers.base.options"
+              v-for="{ name, label, img } in baseSelectableLayerOptions"
               :key="name"
               @click.native="selectableLayers.base.selected = [name]"
               :selected="selectableLayers.base.selected.includes(name)"
@@ -20,14 +20,21 @@
           </div>
         </TabPane>
         <TabPane label="图层控制">
-          <Menu style="width: 100%;">
-            <div v-for="(layer, index) in selectableLayers.extends.options" :key="index">
-              <MenuGroup :title="layer.label" v-if="layer.children">
-                <MenuItem :name="child.name" v-for="child in layer.children" :key="child.id">{{ child.label }}</MenuItem>
-              </MenuGroup>
-              <MenuItem :name="layer.name" v-else>{{ layer.label }}</MenuItem>
+          <div class="menu">
+            <div
+              v-for="({ label, name }) in overlaySelectableLayerOptions"
+              :key="name"
+              :name="name"
+              @click="handleToggleExtendLayer(name)"
+              class="item"
+            >
+              <span class="label">{{ label }}</span>
+              <div class="icon">
+                <Icon v-if="selectableLayers.overlay.selected.includes(name)" type="md-eye" class="on" />
+                <Icon v-else type="md-eye-off" class="off" />
+              </div>
             </div>
-          </Menu>
+          </div>
         </TabPane>
       </Tabs>
     </div>
@@ -61,6 +68,7 @@
 import AMapLoader from '../components/AMapLoader'
 import MakeSelectable from '../components/MakeSelectable'
 import _ from 'lodash'
+import axios from 'axios'
 
 export default {
   name: 'Map',
@@ -82,11 +90,13 @@ export default {
           // 选项列表
           options: [
             {
-              label: '标准图层',
-              name: 'standard',
-              img: '/static/standardLayer.png',
-              layerInstance: null,
-              generateLayer: () => {
+              label: '标准图层', // 标注
+              name: 'standard', // 唯一识别符
+              img: '/static/standardLayer.png', // 图片
+              zIndex: 1, // 排序
+              loading: false, // 加载中提示
+              layerInstance: null, // 图层实例
+              generateLayer: () => { // 图层生成器
                 return new this.AMap.TileLayer()
               }
             },
@@ -94,50 +104,82 @@ export default {
               label: '卫星图层',
               name: 'satellite',
               img: '/static/satelliteLayer.png',
+              zIndex: 2,
+              loading: false, // 加载中提示
               layerInstance: null,
               generateLayer: () => {
                 return new this.AMap.TileLayer.Satellite()
               }
             }
-          ],
-          layerGroup: null
+          ]
         },
-        // 扩展图层
-        extends: {
+        // 叠加图层
+        overlay: {
           selected: [],
           options: [
             {
-              label: '叠加图层A',
-              name: 'a',
+              label: 'GeoJson图层',
+              name: 'geoJson',
               layerInstance: null,
-              generateLayer: () => {
-                return new this.AMap.TileLayer()
+              zIndex: 1,
+              generateLayer: async () => {
+                const { data: geoJSON } = await axios.get('https://a.amap.com/jsapi_demos/static/geojson/chongqing.json')
+
+                return new this.AMap.GeoJSON({
+                  geoJSON,
+                  zIndex: 5,
+                  getPolygon: (geojson, lnglats) => {
+                    return new this.AMap.Polygon({
+                      path: lnglats,
+                      strokeColor: 'white',
+                      fillColor: 'red'
+                    })
+                  }
+                })
               }
             },
             {
-              label: '叠加图层B',
-              name: 'b',
+              label: '楼块图层',
+              name: 'buildings',
               layerInstance: null,
+              zIndex: 2,
               generateLayer: () => {
-                return new this.AMap.TileLayer.Satellite()
+                return new this.AMap.Buildings()
               }
             },
             {
-              label: '叠加图层C',
-              name: 'c',
+              label: '北美洲WMTS图层',
+              name: 'NorthAmericaWMTS',
               layerInstance: null,
               generateLayer: () => {
-                return new this.AMap.TileLayer.Satellite()
+                return new this.AMap.TileLayer.WMTS({
+                  url: 'https://services.arcgisonline.com/arcgis/rest/services/Demographics/USA_Population_Density/MapServer/WMTS/',
+                  blend: false,
+                  tileSize: 256,
+                  params: {
+                    Layer: '0',
+                    Version: '1.0.0',
+                    Format: 'image/png',
+                    TileMatrixSet: 'EPSG:3857'
+                  }
+                })
               }
             }
-          ],
-          layerGroup: null
+          ]
         }
       },
 
       addressSearch: {
         location: ''
       }
+    }
+  },
+  computed: {
+    baseSelectableLayerOptions () {
+      return _.sortBy(this.selectableLayers.base.options, 'zIndex')
+    },
+    overlaySelectableLayerOptions () {
+      return _.sortBy(this.selectableLayers.overlay.options, 'zIndex')
     }
   },
   async beforeRouteEnter (from, to, next) {
@@ -156,42 +198,33 @@ export default {
     initMap () {
       this.map = new this.AMap.Map('map', {
         viewMode: '3D',
-        pitch: 0,
-        layers: []
+        pitch: 0
       })
 
-      // 移除默认图层(消耗资源)
+      // 移除默认图层(消耗资源,优化性能)
       this.map.remove(this.map.getLayers())
-
-      this.selectableLayers.base.layerGroup = new this.AMap.LayerGroup([])
-      this.selectableLayers.extends.layerGroup = new this.AMap.LayerGroup([])
-
-      // 图层组必须使用 setMap 方法注入地图
-      this.selectableLayers.base.layerGroup.setMap(this.map)
-      this.selectableLayers.extends.layerGroup.setMap(this.map)
     },
     registerLayerToggleListener () {
-      // 注册底图切换监听器
-      this.$watch('selectableLayers.base.selected', (selected) => {
-        // 所选图层实例数组
-        const layers = selected.reduce((res, name) => {
-          let { layerInstance, generateLayer } = _.find(this.selectableLayers.base.options, { name }) || {}
-          return [...res, layerInstance || generateLayer(this.AMap)]
-        }, [])
+      // 切换图层实例显示
+      const layerToggleVisible = async (options, selected) => {
+        for (const layer of options) {
+          if (selected.includes(layer.name)) {
+            if (!layer.layerInstance) {
+              layer.layerInstance = await layer.generateLayer()
+              layer.layerInstance.setMap(this.map)
+            }
+            layer.layerInstance.show()
+          } else {
+            layer.layerInstance && layer.layerInstance.hide()
+          }
+        }
+      }
 
-        // 添加图层至地图
-        this.selectableLayers.base.layerGroup.addLayers(layers)
+      const options = { immediate: true, deep: true }
 
-        this.selectableLayers.base.layerGroup.eachLayer(layer => {
-          // 对其他图层隐藏操作
-          _.findIndex(layers, { CLASS_NAME: layer.CLASS_NAME }) !== -1
-            ? layer.show()
-            : layer.hide()
-        })
-      }, {
-        immediate: true,
-        deep: true
-      })
+      // 注册图层切换监听器
+      this.$watch('selectableLayers.base.selected', selected => layerToggleVisible(this.selectableLayers.base.options, selected), options)
+      this.$watch('selectableLayers.overlay.selected', selected => layerToggleVisible(this.selectableLayers.overlay.options, selected), options)
     },
     addMapControls () {
       // 比例尺插件
@@ -207,21 +240,20 @@ export default {
     handleToggleMapFullScreen () {
       const isFullScreen = document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement
 
-      if (!isFullScreen) {
+      if (isFullScreen) {
+        const cancelMethods = ['exitFullscreen', 'msExitFullscreen', 'mozCancelFullScreen', 'webkitExitFullscreen']
+
+        for (const method of cancelMethods) {
+          if (document[method]) return document[method]()
+        }
+      } else {
+        const requestMethods = ['requestFullscreen', 'msRequestFullscreen', 'mozRequestFullScreen', 'webkitRequestFullscreen']
+
         const targetElement = this.$refs.main
 
-        const request = targetElement.requestFullscreen || targetElement.msRequestFullscreen || targetElement.mozRequestFullScreen || targetElement.webkitRequestFullscreen
-
-        request.call(targetElement)
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen()
-        } else if (document.msExitFullscreen) {
-          document.msExitFullscreen()
-        } else if (document.mozCancelFullScreen) {
-          document.mozCancelFullScreen()
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen()
+        for (const method of requestMethods) {
+          // eslint-disable-next-line no-useless-call
+          if (targetElement[method]) return targetElement[method].call(targetElement)
         }
       }
     },
@@ -247,6 +279,13 @@ export default {
           this.$Message.warning('暂无该地址信息～')
         }
       })
+    },
+    handleToggleExtendLayer (name) {
+      const index = this.selectableLayers.overlay.selected.indexOf(name)
+
+      index === -1
+        ? this.selectableLayers.overlay.selected.push(name)
+        : this.selectableLayers.overlay.selected.splice(index, 1)
     }
   }
 }
@@ -293,6 +332,29 @@ export default {
         }
         &::-webkit-scrollbar-track {
           border-radius: 10px;
+        }
+      }
+
+      .menu {
+        .item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 10px;
+          cursor: pointer;
+          .icon {
+            font-size: 1.2rem;
+            .on {
+              color: #2d8cf0;
+            }
+            .off {
+              color: #cccccc;
+            }
+          }
+          &:hover {
+            background: #f7f7f7;
+            color: #2d8cf0;
+          }
         }
       }
 
@@ -374,7 +436,7 @@ export default {
       cursor: pointer;
       position: relative;
       &:hover .ivu-icon{
-        color: #4879ff;
+        color: #2d8cf0;
       }
 
       &:not(:last-of-type):after {

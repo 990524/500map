@@ -10,6 +10,7 @@
   "dependencies": {
     "@antv/l7": "^2.0.1",
     "@antv/l7-maps": "^2.0.1",
+    "axios": "^0.19.1",
     "core-js": "^3.4.4",
     "lodash": "^4.17.15",
     "normalize.css": "^8.0.1",

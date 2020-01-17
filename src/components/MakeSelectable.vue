@@ -24,7 +24,7 @@ export default {
      */
     borderColor: {
       type: String,
-      default: '#4879ff'
+      default: '#2d8cf0'
     },
     selected: Boolean
   },
