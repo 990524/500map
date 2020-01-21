@@ -1,8 +1,8 @@
 <template>
   <div ref="main" class="main">
     <div class="sidebar">
-      <Tabs class="tabs">
-        <TabPane label="底图切换">
+      <Tabs class="tabs" v-model="tab">
+        <TabPane label="底图切换" name="base">
           <div class="content">
             <make-selectable
               v-for="{ name, label, img } in baseSelectableLayerOptions"
@@ -19,22 +19,8 @@
             </make-selectable>
           </div>
         </TabPane>
-        <TabPane label="图层控制">
-          <div class="menu">
-            <div
-              v-for="({ label, name }) in overlaySelectableLayerOptions"
-              :key="name"
-              :name="name"
-              @click="handleToggleExtendLayer(name)"
-              class="item"
-            >
-              <span class="label">{{ label }}</span>
-              <div class="icon">
-                <Icon v-if="selectableLayers.overlay.selected.includes(name)" type="md-eye" class="on" />
-                <Icon v-else type="md-eye-off" class="off" />
-              </div>
-            </div>
-          </div>
+        <TabPane label="图层控制" name="overlay">
+          <layer-list :items="overlaySelectableLayerOptions" v-model="selectableLayers.overlay.selected"></layer-list>
         </TabPane>
       </Tabs>
     </div>
@@ -69,10 +55,11 @@ import AMapLoader from '../components/AMapLoader'
 import MakeSelectable from '../components/MakeSelectable'
 import _ from 'lodash'
 import axios from 'axios'
+import LayerList from '../components/LayerList'
 
 export default {
   name: 'Map',
-  components: { MakeSelectable },
+  components: { LayerList, MakeSelectable },
   data () {
     return {
       // 高德底图初始化对象
@@ -81,22 +68,34 @@ export default {
       // 地图实例
       map: null,
 
+      tab: 'overlay',
+
       // 可选图层列表
       selectableLayers: {
         // 底图
         base: {
           // 已选择
           selected: ['satellite'],
-          // 选项列表
+          /**
+           * 底图选项列表参数
+           *
+           * @param label 标注
+           * @param name 唯一识别符
+           * @param img 图片
+           * @param zIndex 排序
+           * @param loading 加载中提示
+           * @param layerInstance 图层实例
+           * @param generateLayer 图层生成器
+           */
           options: [
             {
-              label: '标准图层', // 标注
-              name: 'standard', // 唯一识别符
-              img: '/static/standardLayer.png', // 图片
-              zIndex: 1, // 排序
-              loading: false, // 加载中提示
-              layerInstance: null, // 图层实例
-              generateLayer: () => { // 图层生成器
+              label: '标准图层',
+              name: 'standard',
+              img: '/static/standardLayer.png',
+              zIndex: 1,
+              loading: false,
+              layerInstance: null,
+              generateLayer: () => {
                 return new this.AMap.TileLayer()
               }
             },
@@ -116,33 +115,53 @@ export default {
         // 叠加图层
         overlay: {
           selected: [],
+          /**
+           * 叠加图层选项列表参数
+           *
+           * category 分类项:
+           * @param label 标注
+           * @param children 子项目(item列表)
+           *
+           * item 选择项:
+           * @param label 标注
+           * @param name 唯一识别符
+           * @param zIndex 排序
+           * @param loading 加载中提示
+           * @param layerInstance 图层实例
+           * @param generateLayer 图层生成器
+           */
           options: [
             {
-              label: 'GeoJson图层',
-              name: 'geoJson',
-              layerInstance: null,
-              zIndex: 1,
-              generateLayer: async () => {
-                const { data: geoJSON } = await axios.get('https://a.amap.com/jsapi_demos/static/geojson/chongqing.json')
+              label: '分类A',
+              children: [
+                {
+                  label: 'GeoJson图层',
+                  name: 'geoJson',
+                  layerInstance: null,
+                  zIndex: 1,
+                  generateLayer: async () => {
+                    const { data: geoJSON } = await axios.get('https://a.amap.com/jsapi_demos/static/geojson/chongqing.json')
 
-                return new this.AMap.GeoJSON({
-                  geoJSON,
-                  zIndex: 5,
-                  getPolygon: (geojson, lnglats) => {
-                    return new this.AMap.Polygon({
-                      path: lnglats,
-                      strokeColor: 'white',
-                      fillColor: 'red'
+                    return new this.AMap.GeoJSON({
+                      geoJSON,
+                      zIndex: 5,
+                      getPolygon: (geojson, lnglats) => {
+                        return new this.AMap.Polygon({
+                          path: lnglats,
+                          strokeColor: 'white',
+                          fillColor: 'red'
+                        })
+                      }
                     })
                   }
-                })
-              }
+                }
+              ]
             },
             {
               label: '楼块图层',
               name: 'buildings',
-              layerInstance: null,
               zIndex: 2,
+              layerInstance: null,
               generateLayer: () => {
                 return new this.AMap.Buildings()
               }
@@ -164,6 +183,42 @@ export default {
                   }
                 })
               }
+            },
+            {
+              label: '分类B',
+              children: [
+                {
+                  label: '全国行政区图层',
+                  name: 'citys',
+                  layerInstance: null,
+                  generateLayer: async () => {
+                    const { data: geoJSON } = await axios.get('https://gw.alipayobjects.com/os/rmsportal/JToMOWvicvJOISZFCkEI.json')
+
+                    return new this.AMap.GeoJSON({
+                      geoJSON,
+                      zIndex: 5,
+                      getPolygon: (geojson, lnglats) => {
+                        const colors = [
+                          '#D7F9F0',
+                          '#A6E1E0',
+                          '#72BED6',
+                          '#5B8FF9',
+                          '#3474DB',
+                          '#005CBE',
+                          '#00419F',
+                          '#00287E'
+                        ]
+
+                        return new this.AMap.Polygon({
+                          path: lnglats,
+                          strokeColor: 'white',
+                          fillColor: colors[Math.floor(Math.random() * colors.length)]
+                        })
+                      }
+                    })
+                  }
+                }
+              ]
             }
           ]
         }
@@ -220,11 +275,27 @@ export default {
         }
       }
 
-      const options = { immediate: true, deep: true }
+      const watchOptions = { immediate: true, deep: true }
+
+      const listSelectableOptions = (options, list = []) => {
+        for (const child of options) {
+          list.push(child) && child.children && listSelectableOptions(child.children, list)
+        }
+
+        return list
+      }
 
       // 注册图层切换监听器
-      this.$watch('selectableLayers.base.selected', selected => layerToggleVisible(this.selectableLayers.base.options, selected), options)
-      this.$watch('selectableLayers.overlay.selected', selected => layerToggleVisible(this.selectableLayers.overlay.options, selected), options)
+      this.$watch(
+        'selectableLayers.base.selected',
+        selected => layerToggleVisible(listSelectableOptions(this.selectableLayers.base.options), selected),
+        watchOptions
+      )
+      this.$watch(
+        'selectableLayers.overlay.selected',
+        selected => layerToggleVisible(listSelectableOptions(this.selectableLayers.overlay.options), selected),
+        watchOptions
+      )
     },
     addMapControls () {
       // 比例尺插件
@@ -280,12 +351,9 @@ export default {
         }
       })
     },
-    handleToggleExtendLayer (name) {
-      const index = this.selectableLayers.overlay.selected.indexOf(name)
 
-      index === -1
-        ? this.selectableLayers.overlay.selected.push(name)
-        : this.selectableLayers.overlay.selected.splice(index, 1)
+    handleA (item) {
+      console.log(item)
     }
   }
 }
@@ -332,29 +400,6 @@ export default {
         }
         &::-webkit-scrollbar-track {
           border-radius: 10px;
-        }
-      }
-
-      .menu {
-        .item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 10px;
-          cursor: pointer;
-          .icon {
-            font-size: 1.2rem;
-            .on {
-              color: #2d8cf0;
-            }
-            .off {
-              color: #cccccc;
-            }
-          }
-          &:hover {
-            background: #f7f7f7;
-            color: #2d8cf0;
-          }
         }
       }
 
