@@ -1,7 +1,6 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
 import Layout from '../layout/index'
-import Map from '../views/Map.vue'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
 
@@ -17,7 +16,7 @@ const routes = [
       {
         path: 'map',
         name: 'map',
-        component: Map
+        component: () => import('../views/map')
       },
       {
         path: 'other/:name',
