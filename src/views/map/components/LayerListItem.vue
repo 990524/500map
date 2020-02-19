@@ -2,25 +2,26 @@
   <div class="set">
     <div :class="['control', item.children ? 'category' : 'item']">
       <div class="title">
-        <div @click="showExpand = !showExpand" class="down-icon" :class="{show: !!item.children}">
+        <div class="down-icon" :class="{show: !!item.children}" @click="showExpand = !showExpand">
           <Icon v-show="showExpand" type="ios-arrow-down" />
           <Icon v-show="!showExpand" type="ios-arrow-forward" />
         </div>
-        <div class="dir-icon" v-if="item.children">
+        <div v-if="item.children" class="dir-icon">
           <Icon v-if="showExpand" type="ios-folder-open" />
-          <Icon v-else type="ios-folder"/>
+          <Icon v-else type="ios-folder" />
         </div>
         <span>{{ item.label }}</span>
       </div>
 
       <div class="icon" @click="handleToggleSelect(item)">
-        <Icon v-if="selected" type="md-eye" class="on" />
+        <Spin v-if="(loadings || []).includes(item.name)" fix style="left: -10px;"></Spin>
+        <Icon v-else-if="selected" type="md-eye" class="on" />
         <Icon v-else type="md-eye-off" class="off" />
       </div>
     </div>
     <transition>
       <div v-if="item.children" v-show="showExpand" class="children">
-        <layer-list-item v-on="$listeners" :all-selected="allSelected" v-for="child in item.children" :key="child.name" :item="child"></layer-list-item>
+        <layer-list-item v-for="child in item.children" :key="child.name" :all-selected="allSelected" :item="child" v-on="$listeners" />
       </div>
     </transition>
   </div>
@@ -34,18 +35,19 @@ export default {
       type: Object,
       required: true
     },
+    loadings: Array,
     allSelected: {
       type: Array,
       default: () => []
     }
   },
-  data () {
+  data() {
     return {
       showExpand: false
     }
   },
   computed: {
-    selected () {
+    selected() {
       let selected = this.allSelected.includes(this.item.name)
 
       if (this.item.children) {
@@ -73,7 +75,7 @@ export default {
     }
   },
   methods: {
-    handleToggleSelect (item) {
+    handleToggleSelect(item) {
       this.$emit('toggle', item)
     }
   }
@@ -122,6 +124,7 @@ $border: 1px solid #ececec;
     .icon {
       cursor: pointer;
       font-size: 1.2rem;
+      position: relative;
       .on {
         color: #2d8cf0;
       }

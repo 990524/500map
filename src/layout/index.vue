@@ -19,7 +19,7 @@
     </nav>
 
     <main class="view">
-      <router-view></router-view>
+      <router-view />
     </main>
   </div>
 </template>
@@ -27,7 +27,7 @@
 <script>
 export default {
   name: 'Layout',
-  data () {
+  data() {
     return {
       theme: 'dark',
       menus: [
@@ -59,7 +59,7 @@ export default {
     }
   },
   computed: {
-    activeMenu () {
+    activeMenu() {
       for (const { url, name } of this.menus) {
         if (url === this.$route.fullPath) return name
       }

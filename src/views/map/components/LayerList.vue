@@ -1,14 +1,12 @@
 <template>
   <div class="layer-list">
     <div v-for="item in items" :key="item.name">
-      <layer-list-item @toggle="handleSelected" :item="item" :all-selected="selected"></layer-list-item>
+      <layer-list-item :item="item" :loadings="loadings" :all-selected="selected" @toggle="handleSelected" />
     </div>
   </div>
 </template>
 
 <script>
-// import _ from 'lodash'
-
 import LayerListItem from './LayerListItem'
 export default {
   name: 'LayerList',
@@ -18,12 +16,13 @@ export default {
       type: Array,
       required: true
     },
+    loadings: Array,
     value: {
       type: Array,
       default: () => []
     }
   },
-  data () {
+  data() {
     return {
       selected: this.value,
       showExpand: false
@@ -33,13 +32,13 @@ export default {
     selected: {
       deep: true,
       immediate: true,
-      handler (selected) {
+      handler(selected) {
         this.$emit('input', selected)
       }
     }
   },
   methods: {
-    handleSelected (item) {
+    handleSelected(item) {
       if (!item.children) {
         const findIndex = this.selected.indexOf(item.name)
         const has = findIndex > -1

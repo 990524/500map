@@ -7,9 +7,9 @@
     @mouseleave="handleMouseleave"
     @click="handleClick"
   >
-    <slot></slot>
-    <div class="mark" v-show="selected">
-      <div class="bg" :style="{ borderTopColor: borderColor }"></div>
+    <slot />
+    <div v-show="selected" class="mark">
+      <div class="bg" :style="{ borderTopColor: borderColor }" />
       <div class="icon"><Icon type="md-done-all" /></div>
     </div>
   </div>
@@ -28,17 +28,17 @@ export default {
     },
     selected: Boolean
   },
-  data () {
+  data() {
     return {
       touching: false
     }
   },
   methods: {
-    handleClick () {},
-    handleMouseover () {
+    handleClick() {},
+    handleMouseover() {
       this.touching = true
     },
-    handleMouseleave () {
+    handleMouseleave() {
       this.touching = false
     }
   }
