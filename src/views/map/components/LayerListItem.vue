@@ -21,7 +21,7 @@
     </div>
     <transition>
       <div v-if="item.children" v-show="showExpand" class="children">
-        <layer-list-item v-for="child in item.children" :key="child.name" :all-selected="allSelected" :item="child" v-on="$listeners" />
+        <layer-list-item v-for="child in item.children" :key="child.name" :loadings="loadings" :all-selected="allSelected" :item="child" v-on="$listeners" />
       </div>
     </transition>
   </div>

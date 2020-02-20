@@ -42,14 +42,14 @@
 
     <div class="toolbar">
       <div class="item" @click="handleZoomIn">
-        <Icon type="md-add" />
+        <Icon type="ios-add" />
       </div>
       <div class="item" @click="handleZoomOut">
-        <Icon class="item" type="md-remove" />
+        <Icon class="item" type="ios-remove" />
       </div>
       <div class="item">
         <Poptip title="POI搜索" placement="bottom">
-          <Icon class="item" type="md-search" />
+          <Icon class="item" type="ios-search-outline" />
           <div slot="content" class="address-search">
             <i-input v-model="poiSearchString" placeholder="请输入地址" class="input" />
             <Button type="primary" @click="handleSearchAddress">确认</Button>
@@ -57,7 +57,7 @@
         </Poptip>
       </div>
       <div class="item" @click="handleToggleMapFullScreen">
-        <Icon class="item" type="md-qr-scanner" />
+        <Icon class="item" type="ios-qr-scanner" />
       </div>
     </div>
 
@@ -70,38 +70,79 @@
               <Icon type="ios-close-circle-outline" />
             </span>
           </p>
-          <div class="statistics">
-            <div class="counts">
-              <div class="confirmed">
-                <div class="count">
-                  <span class="value">{{ dialog.epidemic.confirmedCount }}</span>
-                  <span class="unit">例</span>
+          <div class="content">
+            <div class="statistics">
+              <div class="counts">
+                <div class="confirmed">
+                  <div class="count">
+                    <span class="value">{{ dialog.epidemic.confirmedCount }}</span>
+                    <span class="unit">例</span>
+                  </div>
+                  <div class="title">确诊</div>
                 </div>
-                <div class="title">确诊</div>
+                <div class="suspected">
+                  <div class="count">
+                    <span class="value">{{ dialog.epidemic.suspectedCount }}</span>
+                    <span class="unit">例</span>
+                  </div>
+                  <div class="title">疑似</div>
+                </div>
+                <div class="cured">
+                  <div class="count">
+                    <span class="value">{{ dialog.epidemic.curedCount }}</span>
+                    <span class="unit">例</span>
+                  </div>
+                  <div class="title">治愈</div>
+                </div>
+                <div class="dead">
+                  <div class="count">
+                    <span class="value">{{ dialog.epidemic.deadCount }}</span>
+                    <span class="unit">例</span>
+                  </div>
+                  <div class="title">死亡</div>
+                </div>
               </div>
-              <div class="suspected">
-                <div class="count">
-                  <span class="value">{{ dialog.epidemic.suspectedCount }}</span>
-                  <span class="unit">例</span>
-                </div>
-                <div class="title">疑似</div>
+              <p class="time">最后更新:{{ dialog.epidemic.updateTime | updateTime }}</p>
+            </div>
+            <div class="colors">
+              <div class="item">
+                <div class="section">>10000</div>
+                <div class="color" style="background: #4f080d" />
               </div>
-              <div class="cured">
-                <div class="count">
-                  <span class="value">{{ dialog.epidemic.curedCount }}</span>
-                  <span class="unit">例</span>
-                </div>
-                <div class="title">治愈</div>
+              <div class="item">
+                <div class="section">1000 - 9999</div>
+                <div class="color" style="background: #76161b" />
               </div>
-              <div class="dead">
-                <div class="count">
-                  <span class="value">{{ dialog.epidemic.deadCount }}</span>
-                  <span class="unit">例</span>
-                </div>
-                <div class="title">死亡</div>
+              <div class="item">
+                <div class="section">500 - 999</div>
+                <div class="color" style="background: #c92f31" />
+              </div>
+              <div class="item">
+                <div class="section">100 - 499</div>
+                <div class="color" style="background: #e26554" />
+              </div>
+              <div class="item">
+                <div class="section">10 - 99</div>
+                <div class="color" style="background: #f2a88c" />
+              </div>
+              <div class="item">
+                <div class="section">1 - 9</div>
+                <div class="color" style="background: #fbeed3" />
+              </div>
+              <div class="item">
+                <div class="section">0</div>
+                <div class="color" style="background: #f5f5f5" />
               </div>
             </div>
-            <p class="time">最后更新:{{ dialog.epidemic.updateTime | updateTime }}</p>
+            <div class="cities">
+              <div v-for="city in dialog.epidemic.cities" :key="city.cityName" class="city">
+                <p class="name">{{ city.cityName }}</p>
+                <p class="count">
+                  <span class="value">{{ city.confirmedCount }}</span>
+                  <span class="unit">例</span>
+                </p>
+              </div>
+            </div>
           </div>
         </Card>
       </div>
@@ -237,7 +278,8 @@ export default {
                   case confirmedCount <= 99 : return '#f2a88c'
                   case confirmedCount <= 499 : return '#e26554'
                   case confirmedCount <= 1000 : return '#c92f31'
-                  case confirmedCount > 1000 : return '#76161b'
+                  case confirmedCount <= 9999 : return '#76161b'
+                  case confirmedCount > 10000 : return '#4f080d'
                   default : return 'white'
                 }
               })
@@ -312,7 +354,7 @@ export default {
           label: '分类A',
           children: [
             {
-              label: 'GeoJson图层',
+              label: '重庆GeoJson面图层',
               name: 'geoJson',
               CGI: null,
               layerCreater: async() => {
@@ -454,24 +496,28 @@ export default {
   },
   methods: {
     async createScene() {
-      const map = new this.AMap.Map('map', {
-        viewMode: '3D',
-        center: [107.796, 34.677],
-        zoom: 4.5,
-        pitch: 0
+      return new Promise((resolve, reject) => {
+        const map = new this.AMap.Map('map', {
+          viewMode: '3D',
+          center: [107.796, 34.677],
+          zoom: 4.5,
+          pitch: 0
+        })
+
+        map.on('complete', () => {
+          // 移除默认图层(消耗资源,优化性能)
+          map.remove(map.getLayers())
+
+          this.scene = new Scene({
+            map,
+            zoomControl: false,
+            scaleControl: false,
+            attributionControl: false
+          })
+
+          this.scene.on('loaded', resolve)
+        })
       })
-
-      // 移除默认图层(消耗资源,优化性能)
-      map.remove(map.getLayers())
-
-      this.scene = new Scene({
-        map,
-        zoomControl: false,
-        scaleControl: false,
-        attributionControl: false
-      })
-
-      return new Promise(resolve => this.scene.on('loaded', resolve))
     },
     registerLayerToggleListener() {
       // 批量切换图层实例显示状态
@@ -492,7 +538,7 @@ export default {
       // 平铺图层
       const flattenLayers = (layers, all = []) => {
         for (const layer of layers) {
-          all.push(layer) && layer.children && flattenLayers(layer.children, all)
+          layer.children ? flattenLayers(layer.children, all) : all.push(layer)
         }
 
         return all
@@ -519,24 +565,12 @@ export default {
       this.scene.map.zoomOut()
     },
     handleToggleMapFullScreen() {
-      const isFullScreen =
-        document.fullscreenElement ||
+      const isFullScreen = document.fullscreenElement ||
         document.mozFullScreenElement ||
         document.webkitFullscreenElement ||
         document.msFullscreenElement
 
-      if (isFullScreen) {
-        const cancelMethods = [
-          'exitFullscreen',
-          'msExitFullscreen',
-          'mozCancelFullScreen',
-          'webkitExitFullscreen'
-        ]
-
-        for (const method of cancelMethods) {
-          if (document[method]) return document[method]()
-        }
-      } else {
+      if (!isFullScreen) {
         const requestMethods = [
           'requestFullscreen',
           'msRequestFullscreen',
@@ -550,6 +584,19 @@ export default {
           // eslint-disable-next-line no-useless-call
           if (targetElement[method]) { return targetElement[method].call(targetElement) }
         }
+
+        return
+      }
+
+      const cancelMethods = [
+        'exitFullscreen',
+        'msExitFullscreen',
+        'mozCancelFullScreen',
+        'webkitExitFullscreen'
+      ]
+
+      for (const method of cancelMethods) {
+        if (document[method]) return document[method]()
       }
     },
     handleSearchAddress() {
@@ -724,7 +771,7 @@ $sidebarWidth: 380px;
   }
 
   .toolbar {
-    z-index: 15;
+    z-index: 20;
     position: absolute;
     right: 125px;
     top: calc(65px - 40px / 2);
@@ -772,8 +819,6 @@ $sidebarWidth: 380px;
     z-index: 15;
     right: 55px;
     background: #ececec;
-    width: 350px;
-    padding: 5px;
     .title {
       display: flex;
       justify-content: space-between;
@@ -786,34 +831,94 @@ $sidebarWidth: 380px;
       }
     }
 
-    .statistics {
-      .counts {
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        & > div {
+    .content {
+      width: 330px;
+      max-height: 450px;
+      padding: 5px;
+      overflow: auto;
+      margin-right: -2px;
+
+      &::-webkit-scrollbar {
+        width: 2px;
+        height: 1px;
+      }
+      &::-webkit-scrollbar-thumb {
+        border-radius: 10px;
+        -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+        background: #c2d7f0;
+      }
+      &::-webkit-scrollbar-track {
+        border-radius: 10px;
+      }
+
+      .statistics {
+        .counts {
           display: flex;
-          flex-direction: column;
+          justify-content: space-around;
           align-items: center;
-          padding: 10px;
-          .count {
-            font-weight: bold;
-            .value {
-              font-size: 1.3rem;
-              color: #2d8cf0;
+          & > div {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            .count {
+              font-weight: bold;
+              .value {
+                font-size: 1.3rem;
+                color: #2d8cf0;
+              }
+              .unit {
+                font-size: .5rem;
+              }
             }
-            .unit {
-              font-size: .5rem;
+            .title {
+              font-size: .7rem;
             }
           }
-          .title {
-            font-size: .7rem;
+        }
+
+        .time {
+          text-align: center;
+        }
+      }
+
+      .colors {
+        display: flex;
+        flex-direction: column;
+        padding: 10px 30px;
+        .item {
+          display: flex;
+          width: 100%;
+          justify-content: space-between;
+          align-items: center;
+          .section {
+            font-weight: bold;
+          }
+          .color {
+            width: 12px;
+            height: 12px;
+            background: #cccccc;
           }
         }
       }
 
-      .time {
-        text-align: center;
+      .cities {
+        padding: 10px 30px;
+        .city {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-weight: bold;
+          .count {
+            font-size: 1.1rem;
+            .value {
+              color: #2d8cf0;
+            }
+            .unit {
+              margin-left: 3px;
+            }
+          }
+        }
       }
     }
   }
