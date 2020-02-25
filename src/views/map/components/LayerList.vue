@@ -16,7 +16,10 @@ export default {
       type: Array,
       required: true
     },
-    loadings: Array,
+    loadings: {
+      type: Array,
+      default: () => []
+    },
     value: {
       type: Array,
       default: () => []

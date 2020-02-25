@@ -14,7 +14,7 @@
       </div>
 
       <div class="icon" @click="handleToggleSelect(item)">
-        <Spin v-if="(loadings || []).includes(item.name)" fix style="left: -10px;"></Spin>
+        <Spin v-if="(loadings || []).includes(item.name)" fix style="left: -10px;" />
         <Icon v-else-if="selected" type="md-eye" class="on" />
         <Icon v-else type="md-eye-off" class="off" />
       </div>
@@ -35,7 +35,10 @@ export default {
       type: Object,
       required: true
     },
-    loadings: Array,
+    loadings: {
+      type: Array,
+      default: () => []
+    },
     allSelected: {
       type: Array,
       default: () => []

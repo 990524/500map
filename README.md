@@ -8,31 +8,33 @@ cp .env.exmaple .env
 
 ## 配置高德地图TOKEN
 
-打开`.env`文件，设置`VUE_APP_AMAP_KEY`为你的高德地图应用Key值 https://lbs.amap.com/dev/key/app
+打开`.env`文件，设置`VUE_APP_AMAP_KEY`为你的高德地图应用Key值
+ 
+参考: https://lbs.amap.com/dev/key/app
 
 ```dotenv
-VUE_APP_AMAP_KEY = 'your key'
+VUE_APP_AMAP_KEY = <your key>
 ```
 
-## Project setup
+## 安装依赖
 ```
 npm install
 ```
 
-### Compiles and hot-reloads for development
+### 开发环境编译
 ```
 npm run serve
 ```
 
-### Compiles and minifies for production
+### 生产环境编译
 ```
 npm run build
 ```
 
-### Lints and fixes files
+### EsLint代码风格检查
 ```
 npm run lint
 ```
 
-### Customize configuration
+### 更多自定义配置
 See [Configuration Reference](https://cli.vuejs.org/config/).
