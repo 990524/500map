@@ -9,7 +9,16 @@ export default function MapLoader() {
       v: '1.4.15',
       callback,
       key,
-      plugin: ['AMap.DistrictLayer', 'AMap.Scale', 'AMap.ToolBar', 'AMap.OverView', 'AMap.ControlBar', 'AMap.Geocoder'].join(',')
+      plugin: [
+        'AMap.DistrictLayer',
+        'AMap.Scale',
+        'AMap.ToolBar',
+        'AMap.OverView',
+        'AMap.ControlBar',
+        'AMap.Geocoder',
+        'AMap.Autocomplete',
+        'AMap.PlaceSearch'
+      ].join(',')
     }
 
     const httpQuery = Object.keys(params).reduce((res, key) => `${res}${res ? '&' : ''}${key}=${params[key]}`, '')

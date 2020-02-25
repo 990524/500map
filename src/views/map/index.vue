@@ -51,8 +51,29 @@
         <Poptip title="POI搜索" placement="bottom">
           <Icon class="item" type="ios-search-outline" />
           <div slot="content" class="address-search">
-            <i-input v-model="poiSearchString" placeholder="请输入地址" class="input" />
-            <Button type="primary" @click="handleSearchAddress">确认</Button>
+            <div class="top">
+              <i-input v-model="poiSearchString" placeholder="请输入地址" />
+            </div>
+
+            <!--            <Scroll class="result-list" :on-reach-bottom="handlePoiListReachBottom">-->
+
+            <!--            </Scroll>-->
+
+            <div class="result-list">
+              <div v-for="poi in poiFindList" :key="poi.id + poi.name + poi.tel" class="item" @click="handleSelectPoi(poi)">
+                <div class="title">{{ poi.name }}</div>
+                <div class="line">
+                  <Icon style="color: #2d8cf0;" type="md-navigate" />
+                  {{ `${poi.address} ${poi.tel ? '(' : ''}${poi.tel}${poi.tel ? ')' : ''}` }}
+                </div>
+                <div class="line">{{ `${poi.type}` }}</div>
+              </div>
+
+              <div v-if="poiListCount > 0 && !poiListInLastPage" class="item">
+                <Button type="primary" style="margin: -2px 0;width: 100%;" @click="handlePoiListReachBottom">加载更多</Button>
+              </div>
+            </div>
+
           </div>
         </Poptip>
       </div>
@@ -80,7 +101,7 @@ import provincesOfCountryGeoJson from './provincesOfCountry'
 import _ from 'lodash'
 import EpidemicDialogCard from './components/epidemicDialogCard'
 
-// 可选图层公用网关操作接口
+// 可选图层公用网关操作接口类
 class CGI {
   constructor(show, hide) {
     if (typeof show !== 'function' || typeof hide !== 'function') {
@@ -97,10 +118,15 @@ export default {
   components: { EpidemicDialogCard, LayerList, MakeSelectable },
   data() {
     return {
-      AMap: null, // 高德底图初始化对象
-      scene: null, // L7
+      // 高德底图初始化对象
+      AMap: null,
+      // L7 https://l7.antv.vision/zh/docs/api/l7/
+      scene: null,
+      // 侧边栏菜单选中
       tab: 'overlay',
+      // 侧边栏搜索展示
       showTabBar: true,
+      // 底图列表
       baseLayers: [
         {
           label: '标准图层',
@@ -131,6 +157,7 @@ export default {
           }
         }
       ],
+      // 叠加图层列表
       overLayers: [
         {
           label: '新冠肺炎疫情地图演示',
@@ -362,15 +389,33 @@ export default {
           ]
         }
       ],
+      // 加载中图层
       loadingLayerNames: [],
-      selectedBaseLayerNames: ['satellite'],
+      // 已选中底图
+      selectedBaseLayerNames: ['standard'],
+      // 已选中叠加图层
       selectedOverLayerNames: [],
-      selectedProvinceName: null,
+      // 弹出框展示
       dialogVisible: false,
+      // 弹出框内容
       dialog: {},
-
-      // todo
-      poiSearchString: ''
+      // POI搜索字符串
+      poiSearchString: '成都市',
+      // POI搜索结果
+      poiFindList: [],
+      // POI搜索结果分页
+      poiListPage: 1,
+      // POI查询结果总数
+      poiListCount: 0,
+      // POI结果列表每页大小
+      poiListPageSize: 20,
+      // POI 标记实例
+      poiMarker: null
+    }
+  },
+  computed: {
+    poiListInLastPage() {
+      return this.poiListPage * this.poiListPageSize >= this.poiListCount
     }
   },
   async beforeRouteEnter(from, to, next) {
@@ -382,10 +427,12 @@ export default {
     this.$nextTick(async() => {
       await this.createScene()
       this.registerLayerToggleListener()
+      this.registerPoiSearchListener()
       this.addMapControls()
     })
   },
   methods: {
+    // 创建L7场景
     async createScene() {
       return new Promise((resolve, reject) => {
         const map = new this.AMap.Map('map', {
@@ -410,6 +457,7 @@ export default {
         })
       })
     },
+    // 注册图层切换逻辑监听器
     registerLayerToggleListener() {
       // 批量切换图层实例显示状态
       const toggleLayersVisible = async(layers, selected) => {
@@ -439,22 +487,32 @@ export default {
       this.$watch('selectedBaseLayerNames', v => toggleLayersVisible(flattenLayers(this.baseLayers), v), { immediate: true, deep: true })
       this.$watch('selectedOverLayerNames', v => toggleLayersVisible(flattenLayers(this.overLayers), v), { immediate: true, deep: true })
     },
-    /**
-     * 添加地图插件
-     * @see https://lbs.amap.com/api/javascript-api/reference/map-control/#control-bar
-     */
+    // 注册POI搜索逻辑监听器
+    registerPoiSearchListener() {
+      this.$watch('poiSearchString', () => {
+        this.poiListPage = 1
+        this.poiListCount = 0
+        this.poiFindList = []
+        this.poiMarker && this.poiMarker.hide()
+        this.poiSearchList()
+      }, { immediate: true })
+    },
+    // 添加地图插件
     addMapControls() {
       // 比例尺插件
       this.scene.map.addControl(new this.AMap.Scale({ position: 'RB' }))
       // 组合了旋转、倾斜、复位、缩放在内的地图控件
       this.scene.map.addControl(new this.AMap.ControlBar({ showZoomBar: false }))
     },
+    // 缩放+
     handleZoomIn() {
       this.scene.map.zoomIn()
     },
+    // 缩放-
     handleZoomOut() {
       this.scene.map.zoomOut()
     },
+    // 全屏切换
     handleToggleMapFullScreen() {
       const isFullScreen = document.fullscreenElement ||
         document.mozFullScreenElement ||
@@ -490,28 +548,43 @@ export default {
         if (document[method]) return document[method]()
       }
     },
-    handleSearchAddress() {
-      const geocoder = new this.AMap.Geocoder()
+    // POI搜索
+    poiSearchList() {
+      new this.AMap
+        .PlaceSearch({ pageIndex: this.poiListPage, pageSize: this.poiListPageSize })
+        .search(this.poiSearchString, (status, result) => {
+          const count = _.get(result, 'poiList.count', 0)
+          const list = _.get(result, 'poiList.pois', [])
+          this.poiListCount = count
 
-      geocoder.getLocation(this.poiSearchString, (status, result) => {
-        console.log('result')
-        console.log(result)
+          if (this.poiListInLastPage) return
 
-        if (status === 'complete' && result.info === 'OK') {
-          console.log(233333)
-          console.log(this.scene.map.getZoom())
-          // const zoomLevelMap = {
-          //   '国家':
-          // }
+          this.poiFindList = this.poiListPage === 1 ? list : this.poiFindList.concat(list)
+        })
+    },
+    // POI分页-加载更多
+    handlePoiListReachBottom() {
+      this.poiListPage++
+      this.poiSearchList(this.poiListPage)
+    },
+    // 选中POI
+    handleSelectPoi(poi) {
+      const { lng, lat } = poi.location
+      this.scene.map.panTo(new this.AMap.LngLat(lng, lat))
+      this.scene.map.setZoom(14)
 
-          // result中对应详细地理坐标信息
-          const { lng, lat } = result.geocodes[0].location
+      if (!this.poiMarker) {
+        this.poiMarker = new this.AMap.Marker({
+          position: [lng, lat],
+          label: poi.name
+        })
 
-          this.scene.map.panTo(new this.AMap.LngLat(lng, lat))
-        } else {
-          this.$Message.warning('暂无该地址信息～')
-        }
-      })
+        this.scene.map.add(this.poiMarker)
+      }
+
+      this.poiMarker.setPosition(new this.AMap.LngLat(lng, lat))
+      this.poiMarker.setLabel(poi.name)
+      this.poiMarker.show()
     }
   }
 }
@@ -669,15 +742,14 @@ $sidebarWidth: 380px;
     height: 40px;
     background: #fafafa;
     border-radius: 15px;
-    padding: 3px;
     display: flex;
     align-items: center;
     justify-content: center;
     box-shadow: 0 0 5px 0 #888888;
     padding: 0 10px;
-    .item {
+    & > .item {
       font-size: 2rem;
-      padding: 0 6px;
+      padding: 0 10px;
       cursor: pointer;
       position: relative;
       &:hover .ivu-icon {
@@ -697,9 +769,59 @@ $sidebarWidth: 380px;
       .address-search {
         width: 300px;
         display: flex;
-        justify-content: space-between;
-        .input {
-          margin-right: 5px;
+        flex-direction: column;
+        .top {
+          display: flex;
+          justify-content: space-between;
+        }
+
+        .result-list {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          margin: 10px -2px 10px 0;
+          $border: 1px solid #e5e5e5;
+          border-top: $border;
+          border-bottom: $border;
+          max-height: 40vh;
+          overflow-y: auto;
+
+          &::-webkit-scrollbar {
+            width: 2px;
+            height: 1px;
+          }
+          &::-webkit-scrollbar-thumb {
+            border-radius: 10px;
+            -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+            background: #c2d7f0;
+          }
+          &::-webkit-scrollbar-track {
+            border-radius: 10px;
+          }
+
+          .item {
+            padding: 5px;
+            border-right: 2px solid white;
+            width: 100%;
+            white-space: nowrap !important;
+            &:not(:last-of-type) {
+              border-bottom: $border;
+            }
+            &:hover {
+              background: #f6f6f6;
+            }
+            .title {
+              display: flex;
+              align-items: center;
+              font-size: 1rem;
+              word-break: inherit;
+              white-space: normal !important;
+            }
+            .line {
+              font-size: .5rem;
+              white-space: normal !important;
+            }
+          }
         }
       }
     }
