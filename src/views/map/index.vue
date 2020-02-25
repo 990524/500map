@@ -55,10 +55,6 @@
               <i-input v-model="poiSearchString" placeholder="请输入地址" />
             </div>
 
-            <!--            <Scroll class="result-list" :on-reach-bottom="handlePoiListReachBottom">-->
-
-            <!--            </Scroll>-->
-
             <div class="result-list">
               <div v-for="poi in poiFindList" :key="poi.id + poi.name + poi.tel" class="item" @click="handleSelectPoi(poi)">
                 <div class="title">{{ poi.name }}</div>
