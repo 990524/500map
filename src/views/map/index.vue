@@ -127,7 +127,7 @@ export default {
         {
           label: '标准图层',
           name: 'standard',
-          img: '/static/standardLayer.png',
+          img: 'static/standardLayer.png',
           loading: false,
           CGI: null,
           layerCreater: () => {
@@ -141,7 +141,7 @@ export default {
         {
           label: '卫星图层',
           name: 'satellite',
-          img: '/static/satelliteLayer.png',
+          img: 'static/satelliteLayer.png',
           loading: false, // 加载中提示
           CGI: null,
           layerCreater: () => {
@@ -618,6 +618,7 @@ $sidebarWidth: 380px;
         .content {
           height: calc(100vh - 60px - 36px); // 60px导航栏 36px tabs选择
           margin-bottom: 36px;
+          width: 100%;
           padding: 5px;
           display: block;
           overflow: auto;
