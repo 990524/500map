@@ -1,0 +1,10 @@
+version: '3'
+services:
+  web:
+    build:
+      context: ./docker
+      dockerfile: web.dockerfile
+    volumes:
+      - ./dist:/var/www/public
+    ports:
+      - 80:80
