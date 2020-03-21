@@ -94,6 +94,7 @@ import MakeSelectable from './components/MakeSelectable'
 import axios from 'axios'
 import LayerList from './components/LayerList'
 import provincesOfCountryGeoJson from './provincesOfCountry'
+import area from './area'
 import _ from 'lodash'
 import EpidemicDialogCard from './components/epidemicDialogCard'
 
@@ -130,7 +131,7 @@ export default {
           img: 'static/standardLayer.png',
           loading: false,
           CGI: null,
-          layerCreater: () => {
+          layerGenerate: () => {
             const layer = new this.AMap.TileLayer()
 
             layer.setMap(this.scene.map)
@@ -144,7 +145,7 @@ export default {
           img: 'static/satelliteLayer.png',
           loading: false, // 加载中提示
           CGI: null,
-          layerCreater: () => {
+          layerGenerate: () => {
             const layer = new this.AMap.TileLayer.Satellite()
 
             layer.setMap(this.scene.map)
@@ -159,7 +160,7 @@ export default {
           label: '新冠肺炎疫情地图演示',
           name: 'epidemic',
           CGI: null,
-          layerCreater: async() => {
+          layerGenerate: async() => {
             this.loadingLayerNames.push('epidemic')
 
             let results
@@ -169,15 +170,18 @@ export default {
               const { data } = await axios.get(`https://lab.isaaclin.cn/nCoV/api/area?latest=1`)
               results = data.results
             } catch (e) {
-              this.$Message.error('疫情数据请求失败')
+              this.$Message.warning('疫情第三方API数据请求失败,已使用本地模拟数据')
+              results = area.results
             }
 
             let geoJson
 
             try {
+              /** @see http://datav.aliyun.com/tools/atlas 数据API */
               const { data } = await axios.get(`https://geo.datav.aliyun.com/areas/bound/100000_full.json`)
               geoJson = data
             } catch (e) {
+              this.$Message.warning('地址第三方API数据请求失败,已使用本地模拟数据')
               geoJson = provincesOfCountryGeoJson
             }
 
@@ -271,7 +275,7 @@ export default {
               label: '重庆GeoJson面图层',
               name: 'geoJson',
               CGI: null,
-              layerCreater: async() => {
+              layerGenerate: async() => {
                 this.loadingLayerNames.push('geoJson')
 
                 const { data: geoJSON } = await axios.get('https://a.amap.com/jsapi_demos/static/geojson/chongqing.json')
@@ -301,7 +305,7 @@ export default {
           label: '楼块图层',
           name: 'buildings',
           CGI: null,
-          layerCreater: () => {
+          layerGenerate: () => {
             this.loadingLayerNames.push('buildings')
 
             const layer = new this.AMap.Buildings()
@@ -317,7 +321,7 @@ export default {
           label: '北美洲WMTS图层',
           name: 'NorthAmericaWMTS',
           CGI: null,
-          layerCreater: () => {
+          layerGenerate: () => {
             this.loadingLayerNames.push('NorthAmericaWMTS')
 
             const layer = new this.AMap.TileLayer.WMTS({
@@ -346,7 +350,7 @@ export default {
               label: '全国行政区图层',
               name: 'citys',
               CGI: null,
-              layerCreater: async() => {
+              layerGenerate: async() => {
                 this.loadingLayerNames.push('citys')
 
                 const { data: geoJSON } = await axios.get('https://gw.alipayobjects.com/os/rmsportal/JToMOWvicvJOISZFCkEI.json')
@@ -461,7 +465,7 @@ export default {
           if (selected.includes(layer.name)) {
             // 第一次展示时调用图层创建方法，后续直接调用图层实例显隐
             if (!layer.CGI) {
-              layer.CGI = await layer.layerCreater()
+              layer.CGI = await layer.layerGenerate()
             }
             layer.CGI.show()
           } else {
