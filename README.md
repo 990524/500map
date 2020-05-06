@@ -1,12 +1,8 @@
 # under-map
 
-界面展示:
+> 基于`vue全家桶`及`@antv/l7`构建的地图管理项目demo
 
-![under-map](https://tva1.sinaimg.cn/large/007S8ZIlgy1geivcem11yj31am0qc7cy.jpg)
-![under-map](https://tva1.sinaimg.cn/large/007S8ZIlgy1geivbzh0ovj31am0qcqv5.jpg)
-![under-map](https://tva1.sinaimg.cn/large/007S8ZIlgy1geive0gkj2j31an0qcu0x.jpg)
-
-# 功能
+### 主要功能
 
 - 地图缩放
 - 3D视角切换
@@ -14,6 +10,12 @@
 - 叠加图层动态切换
 - 支持全屏
 - 支持POI搜索并跳转
+
+界面展示:
+
+![under-map](https://tva1.sinaimg.cn/large/007S8ZIlgy1geivcem11yj31am0qc7cy.jpg)
+![under-map](https://tva1.sinaimg.cn/large/007S8ZIlgy1geivbzh0ovj31am0qcqv5.jpg)
+![under-map](https://tva1.sinaimg.cn/large/007S8ZIlgy1geive0gkj2j31an0qcu0x.jpg)
 
 # 项目部署流程
 
